@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@700&family=Noto+Serif+TC:wght@200&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+
+            list-style: none;
+
+            font-size: 20px;
+            font-weight: bolder;
+            color: rgb(0, 0, 0);
+            /* cursor: url(./um2.png) 50 50, auto; */
+
+        }
+
+        body {
+            background-size: 1900px 1900px;
+            background-image: linear-gradient(to right bottom, #f0a4aa, #ffa492, #ffab6f, #ffbb46, #f2d102);
+        }
+
+        .card {
+            width: 100px;
+            height: 180px;
+            /*設定子元素 在 3D 空間內*/
+            transform-style: preserve-3d;
+            position: relative;
+            /*整張卡片的翻轉 180deg = 先蓋住*/
+            transform: rotateY(180deg);
+            /* 指定transform 有0.5秒的翻轉動畫，若是不要指定則使用 all */
+            transition: transform .5s;
+            float: left;
+            margin: 10px;
+        }
+
+        .front {
+            width: 100%;
+            height: 100%;
+            /* background-image: url(./cards/1h.jpg); */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            position: absolute;
+        }
+
+        .back {
+            width: 100%;
+            height: 100%;
+            background-image: url(./cards/Red_back.jpg);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            position: absolute;
+            /*把背面的DIV 轉到front後面貼齊*/
+            transform: rotateY(180deg);
+
+            /*透明效果的調整...... 需要找一下資料*/
+            backface-visibility: hidden;
+        }
+
+        #game {
+            /* 計算一下寬度 16張建議為480*/
+            width: 720px;
+            margin: auto;
+        }
+
+        .open {
+            transform: rotateY(0deg);
+        }
+
+        .text {
+            text-align: center;
+            font-family: 'Noto Serif TC', serif;
+        }
+
+        .btn {
+            font-family: 'Noto Serif TC', serif;
+
+            width: 150px;
+            cursor: pointer;
+        }
+
+        .stopbtn {
+            color: rgb(175, 165, 165);
+            cursor: not-allowed;
+        }
+
+
+        .cheat {
+            opacity: 0.5;
+            transform: rotateY(0deg);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 想要新增:幾秒鐘配對完畢++(完成) / 多回合(完成) / 在一開始給用戶看記憶5秒，5秒後蓋牌(完成) / 紀錄最短秒數localstorage -->
+
+    <div class="text"">
+        <!-- 目前最快:<div id=" numberone"> </div> -->
+    花費時間:<div id="timeadd"> </div>
+    <br> <input type="button" value="開始遊戲" id="btn-start" class="btn">
+    <input type="button" value="作弊一下OuO" id="btn-cheat" class="btn">
+    </div>
+    <div id="game"></div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+    <script src="jquery-3.5.0.min.js"></script>
+    <!-- <script src=" https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.0/jquery.min.js"></script> -->
+    <script>
+        $(function () {
+            //產生i張牌
+            for (let i = 0; i < 24; i++) {
+                $("#game").append(`
+                <div class="card">
+                      <div class="front"></div>
+                      <div class="back"></div>
+                </div>`)
+            }
+            //新增開始按鈕才進行遊戲，
+            $("#btn-start").on("click", function () {
+                Swal.fire({
+                    icon: 'warning',
+                    title: '先給你看五秒OuO',
+                    timer: 900,
+                    showConfirmButton: false,
+                })
+                //新增:若是遊戲中則開始按鈕不可再點擊
+                $(this).attr("disabled", true);
+                $(this).addClass("stopbtn");
+
+                // 作弊的按鈕
+                if ($("#btn-start").attr("disabled", false)) {
+
+                    $("#btn-cheat").on('click', function () {
+                        $("#btn-start").attr("disabled", true);
+                        let cheat = setTimeout(() => {
+                            $(".card").addClass("cheat");
+                        }, 100);
+                        //3秒後蓋牌，開始遊戲
+                        let stopcheat = setTimeout(() => {
+                            $(".card").removeClass("cheat");
+                        }, 4000);
+                    })
+                }
+
+
+                // 新增:點擊開始按鈕後，先讓玩家看3秒，
+                let show = setTimeout(() => {
+                    $(".card").addClass("open");
+                }, 100);
+                //3秒後蓋牌，開始遊戲
+                let disappear = setTimeout(() => {
+                    $(".card").removeClass("open");
+                }, 5000);
+
+
+                // 指定數字
+                for (let i = 0; i < $(".card").length; i++) {
+                    // 卡片總共16張，兩個一組故除2=8種，餘數+1避免出現0 ，1<=num <=8，
+                    // num = 我需要的撲克牌圖片 ，${num}h 為1~8，故會叫出 愛心1~愛心8的圖片
+                    let num = i % ($(".card").length / 2) + 1;
+                    $(".card").eq(i).find(".front").css("background-image", `url(./cards/${num}h.jpg`);
+                    // data-XXX 為新增自定義的標籤， 將每個卡都新增一個卡號，方便測試用(直接點擊同卡號的牌即配對成功)
+                    $(".card").eq(i).attr("data-card", num);
+                }
+                //打亂 ，原本都是按順序排好好的，在此迴圈進行，EX第一次:i=0，隨便抽一張牌，塞到第一張(i=0)，一直進行就可以完成洗牌動作。
+                for (let i = 0; i < $(".card").length; i++) {
+                    // 隨機抽一張牌target，移動到隨機一張牌dist後面，進行16次
+                    //(floor=無條件捨去)
+                    let target = Math.floor(Math.random() * $(".card").length);
+                    //.insertAfter()   => $( content ).insertAfter( selector ) =>content移動到selector後
+                    let dist = Math.floor(Math.random() * $(".card").length);
+                    $(".card").eq(target).insertAfter($(".card").eq(dist));
+
+                }
+                //計時
+                let timeadd = 0;
+                let timer = setInterval(() => {
+                    timeadd++;
+                    $("#timeadd").text(timeadd);
+                }, 1000)
+
+
+                // 翻牌配對
+                $(".card").on("click", function () {
+                    // 判斷，一次只能翻兩張，
+                    // 如果已翻開的牌小於2，且這張還沒翻開
+                    if ($(".open").length < 2 && !$(this).hasClass("open")) {
+                        // 點擊時新增一個CLASS(將翻牌角度調為0即可顯示出來 transform: rotateY(0deg);)
+                        $(this).addClass("open");
+
+                    }
+                    //翻開兩張牌了
+                    if ($(".open").length == 2) {
+                        // 過一秒鐘後翻回來
+                        setTimeout(() => {
+                            $(".open").removeClass("open")
+                        }, 500);
+                        // 若兩張牌一樣
+                        if ($(".open").eq(0).find(".front").css("background-image") == $(".open").eq(1).find(".front").css("background-image")) {
+                            $(".open").fadeTo(1000, 0).addClass("ok");
+
+                        }
+
+                        //如果都配對成功
+                        if ($(".ok").length == $(".card").length) {
+                            // 等待FADETO的1秒過後才跳出恭喜視窗
+                            // 若是不要等待則移除settimeout即可
+
+
+                            let highscore = '';
+                            localStorage.setItem("timeadd", JSON.stringify(timeadd));
+                            // 將 localStorage 存的文字轉成可以使用的陣列
+                            let storage = JSON.stringify(localStorage.getItem("timeadd"));
+                            // 將最高分記錄存入變數並修改網頁文字
+                            $("#numberone").text = storage;
+
+                            // if (storage == null || timeadd > highscore) {
+                            //     // 修改最高分文字
+                            //     $("#numberone").text = highscore;
+                            //     // 將最高分變數轉文字後存入 localStorage
+                            //     localStorage.setItem("highscore", JSON.stringify(highscore));
+                            // }
+
+
+
+                            setTimeout(() => {
+                                //停止計時 
+                                clearInterval(timer);
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '好棒棒',
+                                    text: `花了${timeadd}秒,恭喜過關!`,
+                                    confirmButtonText: '繼續進行遊戲',
+                                }).then(result => {
+                                    //   console.log(result)
+                                    //過關之後重整頁面，點擊開始可以繼續進行遊戲!!! 
+                                    if (result.value) {
+                                        location.reload()
+                                    }
+                                })
+                            }, 500);
+                            //起用開始按鈕
+                            $("#btn-start").attr("disabled", false);
+                            $("#btn-start").removeClass("stopbtn");
+                        }
+
+                    }
+                })
+            })
+        })
+
+    </script>
+</body>
+
+</html>
